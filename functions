@@ -1,0 +1,139 @@
+#!/bin/bash
+#http2需要nginx1.9.5以上，openssl 1.0.2以上
+##变量
+pwd=`pwd`
+codedir=$pwd/code
+nginxV=`( nginx -V ) 2> a;cat a|grep version|awk  '{print $3}'`
+opensslV=`( nginx -V ) 2> a;cat a|awk  'NR==3{print "openssl/"$4}'`
+##变量
+color(){
+	echo -e "\033[3$1m $2\033[0m"
+}
+function status(){
+	if [ $? -eq 0 ];then
+		echo -e "\033[35m$1 ok\033[0m"
+	else
+		echo -e "\033[31m$1 fail\033[0m"
+	fi
+}
+opensslVerify(){
+###确认openssl版本是否符合要求
+	[[ $opensslV != openssl/1.1.0g ]] || echo -e "\033[36m openssl version is 1.1.0g\033[0m";exit
+}
+nginxVerify(){
+###确认nginx版本是否符合要求
+	[[ $nginxV != nginx/1.12.2 ]] || echo -e "\033[36m nginx version is 1.12.2\033[0m";exit
+}
+allVerify(){
+###确认openssl和nginx的版本
+	[[ $opensslV != openssl/1.1.0g ]] || echo -e "\033[36mopenssl version is 1.1.0g\033[0m"
+        [[ $opensslV == openssl/1.1.0g ]] || echo -e "\033[31m openssl will be upgrade\033[0m"
+	[[ $nginxV != nginx/1.12.2 ]] || echo -e "\033[36mnginx version is 1.12.2\033[0m"
+        [[ $nginxV == nginx/1.12.2 ]] || echo -e "\033[31m nginx will be upgrade\033[0m"
+	exit
+}
+function opensslUp() {
+##升级openssl到1.1.0g
+###验证openssl的版本，决定是否进行更新
+	opensslVerify
+###将旧版本的openssl备份
+	mv /usr/bin/openssl /usr/bin/openssl.old
+	mv /usr/include/openssl /usr/include/openssl.old
+###下载1.1版本的openssl，并解压编译
+	#wget https://www.openssl.org/source/openssl-1.1.0g.tar.gz
+	tar zxvf $codedir/openssl-1.1.0g.tar.gz -C /tmp
+	cd /tmp/openssl-1.1.0g/
+	./config --prefix=/usr/local/openssl shared zlib 
+	status config
+	make depend
+	make && make install  
+	ln -s /usr/local/openssl/bin/openssl /usr/bin/openssl
+	ln -s /usr/local/openssl/include/openssl
+	status make
+	cd /usr/local/openssl/lib
+	ln -s libssl.so.1.1 libcrypto.so.1.1 /lib/x86_64-linux-gnu/
+	echo /usr/local/openssl/lib  >> /etc/ld.so.conf
+###验证openssl版本信息
+	if [[ `openssl version |awk '{print $2}'` == 1.1.0g ]];then 
+		echo -e "\033[32mopenssl ok\033[0m"
+	fi
+}
+function nginxCodeUp(){
+##升级nginx到1.12.2
+###验证nginx的版本，决定是否进行更新
+	nginxVerify
+###获取nginx资源包
+	#wget http://nginx.org/download/nginx-1.12.2.tar.gz
+###解压编译nginx
+	tar zxvf $codedir/nginx-1.12.2.tar.gz -C /tmp
+	cd /tmp/nginx-1.12.2
+###修改配置文件让--with-openssl支持编译之后的openssl
+	sed -i "s/.openssl\///" /tmp/nginx-1.12.2/auto/lib/openssl/conf
+	./configure --prefix=/etc/nginx \
+	--sbin-path=/usr/sbin/nginx \
+	--conf-path=/etc/nginx/nginx.conf \
+	--error-log-path=/var/log/nginx/error.log \
+	--http-log-path=/var/log/nginx/access.log \
+	--pid-path=/var/run/nginx.pid \
+	--lock-path=/var/run/nginx.lock \
+	--http-client-body-temp-path=/var/cache/nginx/client_temp \
+	--http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+	--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+	--http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+	--http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+	--with-http_ssl_module \
+	--with-http_realip_module \
+	--with-http_addition_module \
+	--with-http_sub_module \
+	--with-http_dav_module \
+	--with-http_flv_module \
+	--with-http_mp4_module \
+	--with-http_gunzip_module \
+	--with-http_gzip_static_module \
+	--with-http_random_index_module \
+	--with-http_secure_link_module \
+	--with-http_stub_status_module \
+	--with-http_auth_request_module \
+	--with-threads \
+	--with-stream \
+	--with-stream_ssl_module \
+	--with-http_slice_module \
+	--with-mail \
+	--with-mail_ssl_module \
+	--with-file-aio \
+	--with-http_v2_module \
+	--with-openssl=/usr/local/openssl
+	make && make install 
+	mkdir -p /var/cache/nginx/client_temp
+	chown -R www-data:www-data /var/cache/nginx
+	/etc/init.d/nginx restart
+###验证nginx的版本信息以及openssl编译版本信息
+	( nginx -V ) 2> a;cat a|awk -F: 'NR==1{print $2}'
+	( nginx -V ) 2> a;cat a|awk  'NR==3{print "openssl/"$4}'
+	rm a
+}
+function nginxAptUp(){
+## 升级nginx到1.12.2
+###获取nginx的官方apt仓库公钥
+	cd /tmp
+	wget http://nginx.org/keys/nginx_signing.key
+	apt-key add nginx_signing.key
+###向/etc/apt/source.list下添加nginx的源
+	echo "deb http://nginx.org/packages/debian/ jessie nginx" >> /etc/apt/source.list
+	echo "deb-src http://nginx.org/packages/debian/ jessie nginx" >> /etc/apt/source.list
+###保留旧版本的nginx.conf文件
+	cp /etc/nginx/nginx.conf /tmp
+###升级nginx
+	apt-get update
+	status aptUpdate
+	apt-get install nginx -y
+	status installNginx
+###还原nginx.conf
+	cp /tmp/nginx.conf /etc/nginx/nginx.conf
+###查看nginx的安装版本以及详细信息
+	( nginx -V ) 2> a;cat a|awk -F: 'NR==1{print $2}'
+	( nginx -V ) 2> a;cat a|awk  'NR==3{print $4}'
+}
+function hello(){
+	echo hello
+}
