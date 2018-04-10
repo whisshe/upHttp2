@@ -18,19 +18,26 @@ function status(){
 }
 opensslVerify(){
 ###确认openssl版本是否符合要求
-	[[ $opensslV != openssl/1.1.0g ]] || echo -e "\033[36m openssl version is 1.1.0g\033[0m";exit
+    if 	[[ $opensslV == openssl/1.1.0g ]];then 
+	echo -e "\033[36m openssl version is 1.1.0g\033[0m"
+	exit
+    fi
 }
 nginxVerify(){
 ###确认nginx版本是否符合要求
-	[[ $nginxV != nginx/1.12.2 ]] || echo -e "\033[36m nginx version is 1.12.2\033[0m";exit
+    if	[[ $nginxV == nginx/1.12.2 ]];then
+	 echo -e "\033[36m nginx version is 1.12.2\033[0m"
+	 exit
+    fi
+
 }
 allVerify(){
 ###确认openssl和nginx的版本
-	[[ $opensslV != openssl/1.1.0g ]] || echo -e "\033[36mopenssl version is 1.1.0g\033[0m"
-        [[ $opensslV == openssl/1.1.0g ]] || echo -e "\033[31m openssl will be upgrade\033[0m"
-	[[ $nginxV != nginx/1.12.2 ]] || echo -e "\033[36mnginx version is 1.12.2\033[0m"
-        [[ $nginxV == nginx/1.12.2 ]] || echo -e "\033[31m nginx will be upgrade\033[0m"
-	exit
+    if	[[ $opensslV == openssl/1.1.0g ]] || [[ $nginxV == nginx/1.12.2 ]];then
+	echo -e "\033[36m openssl version is 1.1.0g\033[0m"
+	echo -e "\033[36m nginx version is 1.12.2\033[0m"
+	exit 
+    fi
 }
 function opensslUp() {
 ##升级openssl到1.1.0g
