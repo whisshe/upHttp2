@@ -9,6 +9,13 @@ opensslV=`( nginx -V ) 2> a;cat a|awk  'NR==3{print "openssl/"$4}'`
 color(){
 	echo -e "\033[3$1m $2\033[0m"
 }
+whichSystem(){
+    if [ -f /etc/debian_version ] ;then 
+        Pmanager=/usr/bin/apt-get	 
+    elif [ -f /etc/redhat-release ];then 
+	Pmanager=/usr/bin/yum
+     fi
+}
 function status(){
 	if [ $? -eq 0 ];then
 		echo -e "\033[35m$1 ok\033[0m"
@@ -43,6 +50,9 @@ function opensslUp() {
 ##升级openssl到1.1.0g
 ###验证openssl的版本，决定是否进行更新
 	opensslVerify
+###验证系统的包管理工具，安装编译所需依赖
+	whichSystem
+	$Pmanager install -y gcc zlib pcre g++ 
 ###将旧版本的openssl备份
 	mv /usr/bin/openssl /usr/bin/openssl.old
 	mv /usr/include/openssl /usr/include/openssl.old
@@ -69,6 +79,9 @@ function nginxCodeUp(){
 ##升级nginx到1.12.2
 ###验证nginx的版本，决定是否进行更新
 	nginxVerify
+###验证系统的包管理工具，安装编译所需依赖
+	whichSystem
+	$Pmanager install -y gcc zlib pcre g++ 
 ###获取nginx资源包
 	#wget http://nginx.org/download/nginx-1.12.2.tar.gz
 ###解压编译nginx
