@@ -11,8 +11,10 @@ color(){
 }
 whichSystem(){
     if [ -f /etc/debian_version ] ;then 
+	Sys=debian
         Pinstall="/usr/bin/apt-get install -y gcc zlib g++ zlib1g-dev libncurses5-dev ncurses-devel libpcre3 libpcre3-dev"
     elif [ -f /etc/redhat-release ];then 
+	Sys=redhat
 	Pinstall="/usr/bin/yum install -y gcc zlib pcre g++ zlib-devel ncurses-devel ncurses pcre-devel"
      fi
 }
@@ -125,7 +127,11 @@ function nginxCodeUp(){
 	--with-openssl=/usr/local/openssl
 	make && make install 
 	mkdir -p /var/cache/nginx/client_temp
-	chown -R www-data:www-data /var/cache/nginx
+	if [[ $Sys == debian ]];then
+	    chown -R www-data:www-data /var/cache/nginx
+	elif [[ $Sys == redhat ]];then
+	    chown -R nobody:nobody /var/cache/nginx
+	fi
 	/etc/init.d/nginx restart
 ###验证nginx的版本信息以及openssl编译版本信息
 	( nginx -V ) 2> a;cat a|awk -F: 'NR==1{print $2}'
