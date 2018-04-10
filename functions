@@ -11,9 +11,9 @@ color(){
 }
 whichSystem(){
     if [ -f /etc/debian_version ] ;then 
-        Pinstall="/usr/bin/apt-get install -y gcc zlib pcre g++ zlib1g-dev libncurses5-dev ncurses-devel"
+        Pinstall="/usr/bin/apt-get install -y gcc zlib g++ zlib1g-dev libncurses5-dev ncurses-devel libpcre3 libpcre3-dev"
     elif [ -f /etc/redhat-release ];then 
-	Pinstall="/usr/bin/yum install -y gcc zlib pcre g++ zlib-devel ncurses-devel ncurses"
+	Pinstall="/usr/bin/yum install -y gcc zlib pcre g++ zlib-devel ncurses-devel ncurses pcre-devel"
      fi
 }
 function status(){
