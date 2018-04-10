@@ -52,7 +52,7 @@ function opensslUp() {
 	opensslVerify
 ###验证系统的包管理工具，安装编译所需依赖
 	whichSystem
-	$Pmanager install -y gcc zlib pcre g++ 
+	$Pmanager install -y gcc zlib pcre g++ zlib-devel
 ###将旧版本的openssl备份
 	mv /usr/bin/openssl /usr/bin/openssl.old
 	mv /usr/include/openssl /usr/include/openssl.old
@@ -81,7 +81,7 @@ function nginxCodeUp(){
 	nginxVerify
 ###验证系统的包管理工具，安装编译所需依赖
 	whichSystem
-	$Pmanager install -y gcc zlib pcre g++ 
+	$Pmanager install -y gcc zlib pcre g++ zlib-devel
 ###获取nginx资源包
 	#wget http://nginx.org/download/nginx-1.12.2.tar.gz
 ###解压编译nginx
